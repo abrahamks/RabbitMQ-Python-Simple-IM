@@ -13,12 +13,16 @@ import time
 
 #define variable
 nickname = 'default'
+#define configuration
+PAT_config = open('PAT_config.txt')
+parser = PAT_config.readline()
+config = parser.split()
 #define connection
-credentials = pika.PlainCredentials('guest', 'sister')
-connection = pika.BlockingConnection(pika.ConnectionParameters(
-               '167.205.32.7', 5672, '/', credentials))
+credentials = pika.PlainCredentials(config[3], config[4])
+param = pika.ConnectionParameters(config[0],int(config[1]),config[2],credentials)
+connection = pika.BlockingConnection(param)
 channel = connection.channel()
-channel.exchange_declare(exchange='direct_logs',
+channel.exchange_declare(exchange='13510033_13510093',
                          type='direct')
 						 
 result = channel.queue_declare(exclusive=True)
@@ -58,10 +62,10 @@ def set_nickname(nickname_input):
 	
 def join_channel(chan_name):
 	join_message = nickname + ' has just joined ' + chan_name
-	channel.queue_bind(exchange='direct_logs',
+	channel.queue_bind(exchange='13510033_13510093',
                        queue=queue_name,
                        routing_key=chan_name)
-	channel.basic_publish(exchange='direct_logs',
+	channel.basic_publish(exchange='13510033_13510093',
                       routing_key=chan_name,
                       body=join_message)
 	list_of_channels.append(chan_name)
@@ -70,11 +74,11 @@ def join_channel(chan_name):
 	
 def leave_channel(chan_name):
 	leave_message = nickname + ' has just leaved ' + chan_name
-	channel.basic_publish(exchange='direct_logs',
+	channel.basic_publish(exchange='13510033_13510093',
                       routing_key=chan_name,
                       body=leave_message)
 	channel.queue_unbind(queue=queue_name,
-						exchange='direct_logs',
+						exchange='13510033_13510093',
 						routing_key=chan_name)
 	list_of_channels.remove(chan_name)	
 	print 'your list of channels: ' + '[%s]' % ', '.join(map(str, list_of_channels))
@@ -86,14 +90,14 @@ def process_message(msg):
 	if words[0][0] == '@':
 		chan_name = words[0][1:]
 		body_msg = nickname + '___' + ' '.join(words[1:])
-		channel.basic_publish(exchange='direct_logs',
+		channel.basic_publish(exchange='13510033_13510093',
                       routing_key=chan_name,
                       body=body_msg)
 		return '' # nickname + ' >>> ' + body_msg
 	else:
 		#broadcast <msg> to all channels
 		for list_item in list_of_channels:
-			channel.basic_publish(exchange='direct_logs',
+			channel.basic_publish(exchange='13510033_13510093',
                       routing_key=list_item,
                       body=nickname + '___' + msg)
 		return 'broadcast ' + msg + '[%s]' % ', '.join(map(str, list_of_channels))
